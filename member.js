@@ -524,7 +524,7 @@ function renderUrgences() {
   wrap.appendChild(intro);
 
   const contacts = [
-    { icon: "👤", name: "Jean-Christophe Arcamon", role: "Responsable de prédication", tel: jcTel,  type: "normal" },
+    { icon: "👤", name: "Jean-Christophe Arcamone", role: "Responsable de prédication", tel: jcTel,  type: "normal" },
     { icon: "👤", name: "Kailash Bhunsee",         role: "Responsable de prédication", tel: kbTel,  type: "normal" },
     { icon: "🚒", name: "Pompiers",                 role: null,                         tel: "18",   type: "fire"   },
     { icon: "👮", name: "Police",                   role: null,                         tel: "17",   type: "police" },
