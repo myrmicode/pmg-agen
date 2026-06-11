@@ -445,7 +445,7 @@ function _refreshMemberCalendar() {
    MES INSCRIPTIONS
 ════════════════════════════════════════ */
 
-function renderMySlots() {
+async function renderMySlots() {
   const member = currentMember;
   const wrap   = document.getElementById("my-slots-list");
   wrap.innerHTML = "";
@@ -461,10 +461,30 @@ function renderMySlots() {
     return;
   }
 
+  const allMembers = getMembers();
+  const slotsWithCo = await Promise.all(
+    upcoming.map(async slot => {
+      if (!window.fbFunctions?.fbGetRegistrations) return { ...slot, coInscrits: [] };
+      const regs = await window.fbFunctions.fbGetRegistrations(slot.date);
+      const coInscrits = regs
+        .filter(r => r.member_id !== member.id)
+        .map(r => {
+          const m = allMembers.find(mb => mb.id === r.member_id) || {};
+          return {
+            id:     r.member_id,
+            prenom: m.prenom || r.member_prenom || "?",
+            nom:    m.nom    || r.member_nom    || "",
+            tel:    m.tel    || r.member_tel    || "",
+          };
+        });
+      return { ...slot, coInscrits };
+    })
+  );
+
   const container = document.createElement("div");
   container.className = "my-slots-wrap";
 
-  upcoming.forEach(slot => {
+  slotsWithCo.forEach(slot => {
     const d    = keyToDate(slot.date);
     const card = document.createElement("div");
     card.className = "my-slot-card";
@@ -476,12 +496,17 @@ function renderMySlots() {
 
     const coInscrits = slot.coInscrits || [];
     const coInscritsHTML = coInscrits.length > 0
-      ? coInscrits.map(co => `
-          <div class="co-inscrit-row">
-            <span class="co-inscrit-name">👤 ${co.prenom} ${co.nom}</span>
-            ${co.tel ? `<a href="tel:${co.tel.replace(/\s/g,'')}" class="co-inscrit-tel">📞 ${co.tel}</a>` : ""}
-          </div>`).join("")
-      : `<div class="co-inscrit-empty">Aucun co-équipier pour l'instant</div>`;
+      ? coInscrits.map(co => {
+          const bg       = getAvatarBgColor(getAvatarColorIndex(co.id));
+          const initials = getInitials(`${co.prenom} ${co.nom}`);
+          return `
+            <div class="co-inscrit-row">
+              <span class="co-inscrit-avatar" style="background:${bg}">${initials}</span>
+              <span class="co-inscrit-name">${co.prenom} ${co.nom}</span>
+              ${co.tel ? `<a href="tel:${co.tel.replace(/\s/g,'')}" class="co-inscrit-tel">📞 ${co.tel}</a>` : ""}
+            </div>`;
+        }).join("")
+      : `<div class="co-inscrit-empty">Vous serez seul(e) sur ce créneau</div>`;
 
     card.innerHTML = `
       <div class="my-slot-info">
