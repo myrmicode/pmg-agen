@@ -46,54 +46,64 @@ window.clearMemberListeners = clearListeners;
 function setupMemberWeekListeners(mondayKey) {
   if (!window.fbFunctions?.fbListenDay) return;
   const monday = keyToDate(mondayKey);
+
+  const makeHandler = () => (slotDate, regs, slotDoc) => {
+    const slot = memberState.slotsMap[slotDate];
+    if (!slot) return;
+    const allMembers = getMembers();
+    slot.inscrits = regs.map(r => {
+      const m = allMembers.find(mb => mb.id === r.member_id);
+      return m || { id: r.member_id, prenom: r.member_prenom, nom: r.member_nom, tel: r.member_tel };
+    });
+    if (slotDoc.places !== undefined && slotDoc.places !== slot.places) {
+      slot.places = slotDoc.places;
+      patchSlotFromFirebase(slotDate, { places: slotDoc.places });
+    }
+    if (memberState.selectedWeek !== mondayKey) return;
+    refreshDots(document.getElementById("member-cal-body"),
+      memberState.year, memberState.month, currentMember?.id, memberState.slotsMap);
+    renderMemberWeekDetail(mondayKey);
+  };
+
   for (let i = 0; i < 5; i++) {
     const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
     const key = dateToKey(day);
-    const unsub = window.fbFunctions.fbListenDay(key, (slotDate, regs, slotDoc) => {
-      const slot = memberState.slotsMap[slotDate];
-      if (!slot) return;
-      const allMembers = getMembers();
-      slot.inscrits = regs.map(r => {
-        const m = allMembers.find(mb => mb.id === r.member_id);
-        return m || { id: r.member_id, prenom: r.member_prenom, nom: r.member_nom, tel: r.member_tel };
-      });
-      if (slotDoc.places !== undefined && slotDoc.places !== slot.places) {
-        slot.places = slotDoc.places;
-        patchSlotFromFirebase(slotDate, { places: slotDoc.places });
-      }
-      if (memberState.selectedWeek !== mondayKey) return;
-      refreshDots(document.getElementById("member-cal-body"),
-        memberState.year, memberState.month, currentMember?.id, memberState.slotsMap);
-      renderMemberWeekDetail(mondayKey);
-    });
-    activeListeners.push(unsub);
+    activeListeners.push(window.fbFunctions.fbListenDay(key, makeHandler()));
+    if (i === 0 || i === 4) {
+      activeListeners.push(window.fbFunctions.fbListenDay(key + "_17h", makeHandler()));
+    }
   }
 }
 
 function setupModWeekListeners(mondayKey) {
   if (!window.fbFunctions?.fbListenDay) return;
   const monday = keyToDate(mondayKey);
+
+  const makeHandler = () => (slotDate, regs, slotDoc) => {
+    const slot = modState.slotsMap[slotDate];
+    if (!slot) return;
+    const allMembers = getMembers();
+    slot.inscrits = regs.map(r => {
+      const m = allMembers.find(mb => mb.id === r.member_id);
+      return m || { id: r.member_id, prenom: r.member_prenom, nom: r.member_nom, tel: r.member_tel };
+    });
+    if (slotDoc.places !== undefined && slotDoc.places !== slot.places) {
+      slot.places = slotDoc.places;
+      patchSlotFromFirebase(slotDate, { places: slotDoc.places });
+    }
+    if (modState.selectedWeek !== mondayKey) return;
+    refreshDots(document.getElementById("mod-cal-body"),
+      modState.year, modState.month, null, modState.slotsMap);
+    renderModWeekDetail(mondayKey);
+  };
+
   for (let i = 0; i < 5; i++) {
     const day = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
     const key = dateToKey(day);
-    const unsub = window.fbFunctions.fbListenDay(key, (slotDate, regs, slotDoc) => {
-      const slot = modState.slotsMap[slotDate];
-      if (!slot) return;
-      const allMembers = getMembers();
-      slot.inscrits = regs.map(r => {
-        const m = allMembers.find(mb => mb.id === r.member_id);
-        return m || { id: r.member_id, prenom: r.member_prenom, nom: r.member_nom, tel: r.member_tel };
-      });
-      if (slotDoc.places !== undefined && slotDoc.places !== slot.places) {
-        slot.places = slotDoc.places;
-        patchSlotFromFirebase(slotDate, { places: slotDoc.places });
-      }
-      if (modState.selectedWeek !== mondayKey) return;
-      refreshDots(document.getElementById("mod-cal-body"),
-        modState.year, modState.month, null, modState.slotsMap);
-      renderModWeekDetail(mondayKey);
-    });
-    activeListeners.push(unsub);
+    activeListeners.push(window.fbFunctions.fbListenDay(key, makeHandler()));
+    if (i === 0 || i === 4) {
+      activeListeners.push(window.fbFunctions.fbListenDay(key + "_17h", makeHandler()));
+    }
   }
 }
 
@@ -301,15 +311,9 @@ function renderMemberWeekDetail(mondayKey) {
   const today    = new Date(); today.setHours(0, 0, 0, 0);
   const monday   = keyToDate(mondayKey);
 
-  for (let i = 0; i < 5; i++) {
-    const day    = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
-    const key    = dateToKey(day);
-    const slot   = slotsMap[key] || { id: null, date: key, inscrits: [], is_closed: false, close_reason: null, places: 2 };
-    const isPast = day < today;
-
-    const card = document.createElement("div");
-    card.className = "day-card";
-
+  const appendCard = (slot, dayLabel, isPast) => {
+    const card      = document.createElement("div");
+    card.className  = "day-card";
     const hdrClass  = slot.is_closed ? "closed-header" : isPast ? "past-header" : "";
     const badge     = buildMemberBadge(slot, member.id);
     const timeLabel = slot.heure_debut && slot.heure_fin
@@ -319,7 +323,7 @@ function renderMemberWeekDetail(mondayKey) {
     card.innerHTML = `
       <div class="day-card-header ${hdrClass}">
         <div>
-          <div class="day-card-name">${DAYS_FR[i]}</div>
+          <div class="day-card-name">${dayLabel}</div>
           <div class="day-card-time">${timeLabel} · ${lieuLabel}</div>
         </div>
         ${badge}
@@ -361,11 +365,10 @@ function renderMemberWeekDetail(mondayKey) {
     card.appendChild(body);
 
     if (!isPast && !slot.is_closed && slot.id) {
-      const actionDiv = document.createElement("div");
+      const actionDiv  = document.createElement("div");
       actionDiv.className = "day-card-action";
-      const isInscrit = slot.inscrits && slot.inscrits.some(m => m.id === member.id);
-      const isFull    = slot.inscrits && slot.inscrits.length >= slot.places;
-
+      const isInscrit  = slot.inscrits && slot.inscrits.some(m => m.id === member.id);
+      const isFull     = slot.inscrits && slot.inscrits.length >= slot.places;
       if (isInscrit) {
         actionDiv.innerHTML = `<button class="btn btn-outline-red btn-sm" data-action="desister" data-slot-id="${slot.id}">Se désister</button>`;
       } else if (!isFull) {
@@ -375,6 +378,19 @@ function renderMemberWeekDetail(mondayKey) {
     }
 
     cards.appendChild(card);
+  };
+
+  for (let i = 0; i < 5; i++) {
+    const day    = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    const key    = dateToKey(day);
+    const isPast = day < today;
+    const label  = DAYS_FR[i];
+
+    const morningSlot = slotsMap[key] || { id: null, date: key, inscrits: [], is_closed: false, close_reason: null, places: 2, heure_debut: null, heure_fin: null };
+    appendCard(morningSlot, label, isPast);
+
+    const eveningSlot = slotsMap[key + "_17h"];
+    if (eveningSlot) appendCard(eveningSlot, label, isPast);
   }
 
   cards.onclick = (e) => {
@@ -680,15 +696,9 @@ function renderModWeekDetail(mondayKey) {
   const today    = new Date(); today.setHours(0, 0, 0, 0);
   const monday   = keyToDate(mondayKey);
 
-  for (let i = 0; i < 5; i++) {
-    const day  = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
-    const key  = dateToKey(day);
-    const slot = slotsMap[key] || { id: null, date: key, inscrits: [], is_closed: false, close_reason: null, places: 2 };
-    const isPast = day < today;
-
-    const card = document.createElement("div");
-    card.className = "day-card";
-
+  const appendModCard = (slot, dayLabel, isPast) => {
+    const card      = document.createElement("div");
+    card.className  = "day-card";
     const hdrClass  = slot.is_closed ? "closed-header" : isPast ? "past-header" : "";
     const badge     = buildAdminBadge(slot);
     const timeLabel = slot.heure_debut && slot.heure_fin
@@ -698,7 +708,7 @@ function renderModWeekDetail(mondayKey) {
     card.innerHTML = `
       <div class="day-card-header ${hdrClass}">
         <div>
-          <div class="day-card-name">${DAYS_FR[i]}</div>
+          <div class="day-card-name">${dayLabel}</div>
           <div class="day-card-time">${timeLabel} · ${lieuLabel}</div>
         </div>
         ${badge}
@@ -739,6 +749,19 @@ function renderModWeekDetail(mondayKey) {
     }
 
     cards.appendChild(card);
+  };
+
+  for (let i = 0; i < 5; i++) {
+    const day    = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + i);
+    const key    = dateToKey(day);
+    const isPast = day < today;
+    const label  = DAYS_FR[i];
+
+    const morningSlot = slotsMap[key] || { id: null, date: key, inscrits: [], is_closed: false, close_reason: null, places: 2, heure_debut: null, heure_fin: null };
+    appendModCard(morningSlot, label, isPast);
+
+    const eveningSlot = slotsMap[key + "_17h"];
+    if (eveningSlot) appendModCard(eveningSlot, label, isPast);
   }
 
   cards.onclick = (e) => {

@@ -205,11 +205,16 @@ async function fbGetSlots(dateDebut, dateFin) {
   } catch { return []; }
 }
 
-async function fbGenerateMissingSlots(missingDates, places) {
-  for (const date of missingDates) {
+async function fbGenerateMissingSlots(missingSlots, places) {
+  for (const slot of missingSlots) {
     try {
-      await setDoc(doc(db, "slots", date), {
-        date, places, is_closed: false, close_reason: null,
+      await setDoc(doc(db, "slots", slot.date), {
+        date:         slot.date.slice(0, 10),
+        heure_debut:  slot.heure_debut,
+        heure_fin:    slot.heure_fin,
+        places,
+        is_closed:    false,
+        close_reason: null,
       }, { merge: true });
     } catch {}
   }

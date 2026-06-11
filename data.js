@@ -64,8 +64,8 @@ export function dateToKey(d) {
 }
 
 export function keyToDate(key) {
-  const [y, m, d] = key.split("-").map(Number);
-  return new Date(y, m - 1, d);
+  const parts = key.split("-");
+  return new Date(+parts[0], +parts[1] - 1, parseInt(parts[2]));
 }
 
 export function lastDayOfMonth(year, month) {
@@ -244,7 +244,7 @@ export function updateFutureSlotsPlaces(places) {
 
 export function getSlots(dateDebut, dateFin) {
   return _load("tpl_slots", [])
-    .filter(s => s.date >= dateDebut && s.date <= dateFin)
+    .filter(s => s.date.slice(0, 10) >= dateDebut && s.date.slice(0, 10) <= dateFin)
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -258,26 +258,33 @@ export function generateMissingSlots() {
     return { year: d.getFullYear(), month: d.getMonth() };
   });
 
-  const allDates = [];
+  const allSlotDefs = [];
   for (const { year, month } of months) {
     const cur     = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     while (cur <= lastDay) {
-      if (isWeekday(cur)) allDates.push(dateToKey(new Date(cur)));
+      if (isWeekday(cur)) {
+        const dateKey = dateToKey(new Date(cur));
+        const dow     = cur.getDay();
+        allSlotDefs.push({ date: dateKey,           heure_debut: "07:00", heure_fin: "09:00" });
+        if (dow === 1 || dow === 5) {
+          allSlotDefs.push({ date: dateKey + "_17h", heure_debut: "17:00", heure_fin: "19:00" });
+        }
+      }
       cur.setDate(cur.getDate() + 1);
     }
   }
 
-  if (allDates.length === 0) return;
+  if (allSlotDefs.length === 0) return;
 
   const existing      = _load("tpl_slots", []);
   const existingDates = new Set(existing.map(s => s.date));
-  const missing       = allDates.filter(d => !existingDates.has(d));
+  const missing       = allSlotDefs.filter(s => !existingDates.has(s.date));
   if (missing.length === 0) return;
 
-  missing.forEach(date => existing.push({
+  missing.forEach(({ date, heure_debut, heure_fin }) => existing.push({
     id: genId(), date, places,
-    heure_debut: null, heure_fin: null, lieu: null,
+    heure_debut, heure_fin, lieu: null,
     is_closed: false, close_reason: null,
   }));
   _save("tpl_slots", existing);

@@ -39,28 +39,34 @@ export function lockedMonthMessage(targetYear, targetMonth) {
 
 /* ── Dots calendrier (slotsMap passé en paramètre) ── */
 
-export function getDotClass(dateKey, memberId, slotsMap) {
+function getDotClassesForDay(dateKey, memberId, slotsMap, isAdminView) {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const d = keyToDate(dateKey);
-  if (!isWeekday(d) || d < today) return null;
+  if (!isWeekday(d) || d < today) return [];
 
-  const slot = slotsMap[dateKey];
-  if (!slot) return null;
-  if (slot.is_closed) return "dot-red";
+  const classes = [];
+  for (const key of [dateKey, dateKey + "_17h"]) {
+    const slot = slotsMap[key];
+    if (!slot) continue;
+    if (slot.is_closed) { classes.push("dot-red"); continue; }
+    const max = slot.places || 2;
+    if (!isAdminView && memberId && slot.inscrits && slot.inscrits.some(m => m.id === memberId)) {
+      classes.push("dot-orange");
+    } else if (slot.inscrits && slot.inscrits.length >= max) {
+      classes.push("dot-gray");
+    } else {
+      classes.push("dot-green");
+    }
+  }
+  return classes;
+}
 
-  const max = slot.places || 2;
-  if (memberId && slot.inscrits && slot.inscrits.some(m => m.id === memberId)) return "dot-orange";
-  if (slot.inscrits && slot.inscrits.length >= max) return "dot-gray";
-  return "dot-green";
+export function getDotClass(dateKey, memberId, slotsMap) {
+  return getDotClassesForDay(dateKey, memberId, slotsMap, false)[0] ?? null;
 }
 
 export function getDotClassAdmin(dateKey, slotsMap) {
-  const slot = slotsMap[dateKey];
-  if (!slot || !isWeekday(keyToDate(dateKey))) return null;
-  if (slot.is_closed) return "dot-red";
-  const max = slot.places || 2;
-  if (slot.inscrits && slot.inscrits.length >= max) return "dot-gray";
-  return "dot-green";
+  return getDotClassesForDay(dateKey, null, slotsMap, true)[0] ?? null;
 }
 
 /* ── Grille mensuelle ── */
@@ -123,14 +129,17 @@ export function renderCalendarGrid(container, year, month, memberId, selectedWee
       dayEl.appendChild(numEl);
 
       if (isWeekday(day) && !isPast) {
-        const key      = dateToKey(day);
-        const dotClass = isAdminView
-          ? getDotClassAdmin(key, slotsMap)
-          : getDotClass(key, memberId, slotsMap);
-        if (dotClass) {
-          const dot = document.createElement("div");
-          dot.className = `cal-day-dot ${dotClass}`;
-          dayEl.appendChild(dot);
+        const key = dateToKey(day);
+        const dotClasses = getDotClassesForDay(key, memberId, slotsMap, isAdminView);
+        if (dotClasses.length > 0) {
+          const dotsEl = document.createElement("div");
+          dotsEl.className = "cal-day-dots";
+          dotClasses.forEach(cls => {
+            const dot = document.createElement("div");
+            dot.className = `cal-day-dot ${cls}`;
+            dotsEl.appendChild(dot);
+          });
+          dayEl.appendChild(dotsEl);
         }
       }
 
@@ -156,18 +165,20 @@ export function refreshDots(calBody, year, month, memberId, slotsMap) {
       const day = weekDates[di];
       if (!day || !isWeekday(day)) return;
 
-      const existing = dayEl.querySelector(".cal-day-dot");
+      const existing = dayEl.querySelector(".cal-day-dots");
       if (existing) existing.remove();
 
-      const key      = dateToKey(day);
-      const dotClass = isAdminView
-        ? getDotClassAdmin(key, slotsMap)
-        : getDotClass(key, memberId, slotsMap);
-
-      if (dotClass) {
-        const dot = document.createElement("div");
-        dot.className = `cal-day-dot ${dotClass}`;
-        dayEl.appendChild(dot);
+      const key = dateToKey(day);
+      const dotClasses = getDotClassesForDay(key, memberId, slotsMap, isAdminView);
+      if (dotClasses.length > 0) {
+        const dotsEl = document.createElement("div");
+        dotsEl.className = "cal-day-dots";
+        dotClasses.forEach(cls => {
+          const dot = document.createElement("div");
+          dot.className = `cal-day-dot ${cls}`;
+          dotsEl.appendChild(dot);
+        });
+        dayEl.appendChild(dotsEl);
       }
     });
   });

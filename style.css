@@ -560,11 +560,16 @@ a { color: inherit; }
   font-weight: 400;
 }
 
+.cal-day-dots {
+  display: flex;
+  gap: 3px;
+  justify-content: center;
+  margin-top: 3px;
+}
 .cal-day-dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  margin-top: 3px;
 }
 .dot-green  { background: var(--green); }
 .dot-orange { background: var(--orange); }
