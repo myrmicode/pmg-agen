@@ -145,7 +145,7 @@ export function bindLoginScreen() {
       ]);
     } catch {}
 
-    /* ── Fallback hors ligne : dernier membre mis en cache ── */
+    /* ── Fallback 1 : dernier membre mis en cache (hors ligne) ── */
     if (!member) {
       try {
         const cached = JSON.parse(localStorage.getItem(MEMBER_CACHE) || "null");
@@ -154,6 +154,25 @@ export function bindLoginScreen() {
             cached.nom?.toLowerCase()    === nom.toLowerCase()) {
           member = cached;
           console.log("[TPL] Mode hors ligne — cache utilisé");
+        }
+      } catch {}
+    }
+
+    /* ── Fallback 2 : membre présent dans tpl_members (local) mais absent de Firebase ── */
+    if (!member) {
+      try {
+        const p = prenom.toLowerCase().trim();
+        const n = nom.toLowerCase().trim();
+        const allMembers = JSON.parse(localStorage.getItem("tpl_members") || "[]");
+        const found = allMembers.find(m =>
+          m.prenom?.toLowerCase().trim() === p &&
+          m.nom?.toLowerCase().trim()    === n
+        );
+        if (found) {
+          member = found;
+          /* Resync vers Firebase — le membre était manquant */
+          window.fbFunctions?.fbAddMember(found);
+          console.log("[TPL] Membre absent de Firebase — resync déclenchée pour", found.prenom, found.nom);
         }
       } catch {}
     }
