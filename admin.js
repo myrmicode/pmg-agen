@@ -476,6 +476,29 @@ function adminDeleteMember(member) {
 }
 
 /* ════════════════════════════════════════
+   SYNC FIREBASE
+════════════════════════════════════════ */
+
+export function bindSyncFirebaseButton() {
+  document.getElementById("sync-firebase-btn").addEventListener("click", async () => {
+    const members = getMembers();
+    if (members.length === 0) { window.showToast("Aucun membre à synchroniser."); return; }
+    const btn = document.getElementById("sync-firebase-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader"></i> Sync…';
+    try {
+      await Promise.allSettled(members.map(m => window.fbFunctions?.fbAddMember(m)));
+      window.showToast(`${members.length} membre${members.length > 1 ? "s" : ""} synchronisé${members.length > 1 ? "s" : ""} vers Firebase.`);
+    } catch {
+      window.showToast("Erreur lors de la synchronisation.", "error");
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ti ti-cloud-upload"></i> Sync';
+    }
+  });
+}
+
+/* ════════════════════════════════════════
    MODAL AJOUT MEMBRE
 ════════════════════════════════════════ */
 

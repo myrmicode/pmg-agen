@@ -21,6 +21,7 @@ import {
   bindAdminTabs, bindAdminMonthNav,
   bindCloseSlotModal, openCloseSlotModal,
   bindAddMemberModal, bindImportModal, bindAdminSettings, bindAdminStats,
+  bindSyncFirebaseButton,
 } from './admin.js';
 
 /* ── Screens ── */
@@ -190,6 +191,7 @@ document.addEventListener("DOMContentLoaded", () => {
   bindImportModal();
   bindAdminSettings();
   bindAdminStats();
+  bindSyncFirebaseButton();
 
   /* 5. Sync Firebase en arrière-plan, après affichage de l'écran */
   syncFromFirebase();

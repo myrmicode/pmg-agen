@@ -4,7 +4,7 @@
    cache-at-runtime pour le CDN Tabler.
 ══════════════════════════════════════════════ */
 
-const CACHE_NAME  = 'tpl-v20';
+const CACHE_NAME  = 'tpl-v21';
 const TABLER_URL  = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css';
 
 const PRECACHE_URLS = [
