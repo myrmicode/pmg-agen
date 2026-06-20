@@ -13,6 +13,16 @@ export const DEFAULT_MEMBERS = [
 
 export const DEFAULT_SETTINGS = { admin_pwd: "1234", banner: "", places_default: "2" };
 
+/* ── Normalisation partagée (login + admin + import) ── */
+
+export function norm(s) {
+  return (s ?? "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/ /g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 /* ── Générateur d'ID ── */
 
 export function genId() {

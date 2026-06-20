@@ -41,6 +41,16 @@ function generateToken() {
   return crypto.randomUUID() + "-" + Date.now().toString(36);
 }
 
+/* ── Normalisation locale (dupliquée de data.js — firebase.js ne peut pas importer) ── */
+
+function norm(s) {
+  return (s ?? "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .replace(/ /g, " ")
+    .trim()
+    .toLowerCase();
+}
+
 /* ── Membres (doc ID = UUID local) ── */
 
 async function fbGetMembers() {
@@ -65,15 +75,16 @@ async function fbAddMember(member) {
 /* Recherche membre par prénom+nom (case-insensitive) — retourne le doc complet avec pin_hash */
 async function fbFindMember(prenom, nom) {
   try {
-    const p    = prenom.toLowerCase().trim();
-    const n    = nom.toLowerCase().trim();
+    const p = norm(prenom);
+    const n = norm(nom);
     const snap = await getDocs(collection(db, "members"));
-    const found = snap.docs.find(d => {
+    const matches = snap.docs.filter(d => {
       const data = d.data();
-      return data.prenom?.toLowerCase().trim() === p &&
-             data.nom?.toLowerCase().trim()    === n;
+      return norm(data.prenom) === p && norm(data.nom) === n;
     });
-    return found ? { id: found.id, ...found.data() } : null;
+    if (matches.length === 0) return null;
+    /* Si doublons de nom normalisé, le PIN départagera */
+    return { id: matches[0].id, ...matches[0].data() };
   } catch { return null; }
 }
 

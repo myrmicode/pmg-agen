@@ -9,7 +9,7 @@ import {
   getMembers, getMemberUpcomingCount,
   addMember, deleteMember, setModerator, importMembers,
   updateSetting, updateFutureSlotsPlaces, closeSlot, openSlot, deleteRegistration,
-  patchSlotFromFirebase, _load,
+  patchSlotFromFirebase, _load, norm,
 } from './data.js';
 import {
   renderCalendarGrid, refreshDots, weekRangeLabel,
@@ -364,12 +364,11 @@ function renderAdminMembers() {
   }
 
   const rawQuery  = searchEl ? searchEl.value.trim() : "";
-  const normalize = s => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-  const q         = normalize(rawQuery);
+  const q         = norm(rawQuery);
 
   const allMembers = getMembers();
   const members    = q
-    ? allMembers.filter(m => normalize(fullName(m)).includes(q) || normalize(m.tel || "").includes(q))
+    ? allMembers.filter(m => norm(fullName(m)).includes(q) || norm(m.tel || "").includes(q))
     : allMembers;
 
   countEl.textContent = `${allMembers.length} membre${allMembers.length > 1 ? "s" : ""}`;

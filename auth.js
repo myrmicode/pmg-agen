@@ -2,7 +2,7 @@
    auth.js — Login membre (PIN Firebase), login admin, logout
 ══════════════════════════════════════════════ */
 
-import { getSettings } from './data.js';
+import { getSettings, norm } from './data.js';
 
 const SESSION_KEY  = "tpl_session";
 const LAST_USER_KEY = "tpl_last_user";
@@ -150,8 +150,8 @@ export function bindLoginScreen() {
       try {
         const cached = JSON.parse(localStorage.getItem(MEMBER_CACHE) || "null");
         if (cached &&
-            cached.prenom?.toLowerCase() === prenom.toLowerCase() &&
-            cached.nom?.toLowerCase()    === nom.toLowerCase()) {
+            norm(cached.prenom) === norm(prenom) &&
+            norm(cached.nom)    === norm(nom)) {
           member = cached;
           console.log("[TPL] Mode hors ligne — cache utilisé");
         }
@@ -161,12 +161,10 @@ export function bindLoginScreen() {
     /* ── Fallback 2 : membre présent dans tpl_members (local) mais absent de Firebase ── */
     if (!member) {
       try {
-        const p = prenom.toLowerCase().trim();
-        const n = nom.toLowerCase().trim();
         const allMembers = JSON.parse(localStorage.getItem("tpl_members") || "[]");
         const found = allMembers.find(m =>
-          m.prenom?.toLowerCase().trim() === p &&
-          m.nom?.toLowerCase().trim()    === n
+          norm(m.prenom) === norm(prenom) &&
+          norm(m.nom)    === norm(nom)
         );
         if (found) {
           member = found;
