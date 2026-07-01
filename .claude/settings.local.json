@@ -19,7 +19,12 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\hp\\\\Desktop\\\\PM gare\" -Force)",
       "Bash(Select-Object -Property Name, FullName)",
       "Bash(Format-List)",
-      "Bash(find \"C:\\\\\\\\Users\\\\\\\\hp\\\\\\\\Desktop\\\\\\\\PM gare\" -maxdepth 1 -type f -o -type d)"
+      "Bash(find \"C:\\\\\\\\Users\\\\\\\\hp\\\\\\\\Desktop\\\\\\\\PM gare\" -maxdepth 1 -type f -o -type d)",
+      "Bash(gh api *)",
+      "Bash(gh browse *)",
+      "Bash(git -C \"C:/Users/hp/Desktop/PM gare\" status)",
+      "Bash(git -C \"C:/Users/hp/Desktop/PM gare\" diff)",
+      "Bash(git *)"
     ]
   }
 }
