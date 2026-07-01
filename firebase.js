@@ -68,7 +68,7 @@ async function fbAddMember(member) {
       tel:          member.tel || "",
       is_moderator: !!member.is_moderator,
       pin_reset:    false,
-    });
+    }, { merge: true });
   } catch {}
 }
 
