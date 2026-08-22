@@ -219,14 +219,20 @@ async function fbGetSlots(dateDebut, dateFin) {
 async function fbGenerateMissingSlots(missingSlots, places) {
   for (const slot of missingSlots) {
     try {
-      await setDoc(doc(db, "slots", slot.date), {
+      const ref  = doc(db, "slots", slot.date);
+      const snap = await getDoc(ref);
+      /* Le créneau existe déjà côté Firestore (ex: places déjà modifié par
+         l'admin) — ne jamais l'écraser juste parce qu'il est absent du
+         cache local (nouvel appareil, cache vidé, etc.). */
+      if (snap.exists()) continue;
+      await setDoc(ref, {
         date:         slot.date.slice(0, 10),
         heure_debut:  slot.heure_debut,
         heure_fin:    slot.heure_fin,
         places,
         is_closed:    false,
         close_reason: null,
-      }, { merge: true });
+      });
     } catch {}
   }
 }
