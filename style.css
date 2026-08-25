@@ -391,6 +391,18 @@ a { color: inherit; }
 .tab-content { flex: 1; overflow-y: auto; }
 .tab-content[hidden] { display: none !important; }
 
+.tabs-install-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 .75rem;
+  font-size: 1.1rem;
+  transition: background .15s, opacity .15s;
+  opacity: .85;
+}
+.tabs-install-btn:hover { opacity: 1; background: rgba(255,255,255,.12); }
+
 /* ═══════════════════════════════════════════
    MONTH NAVIGATION
 ══════════════════════════════════════════════ */
