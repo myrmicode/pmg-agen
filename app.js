@@ -137,13 +137,25 @@ async function syncFromFirebase() {
    sinon une mise à jour peut mettre des heures à être détectée. Dès
    qu'une nouvelle version prend le contrôle, on recharge une seule
    fois pour que l'appli affiche immédiatement le nouveau code, sans
-   que l'utilisateur ait à vider le cache manuellement. */
+   que l'utilisateur ait à vider le cache manuellement.
+
+   Une vérification au chargement ne suffit pas : sur une PWA installée,
+   "rouvrir" l'appli depuis le multitâche ne recharge PAS la page — c'est
+   la même instance qui reprend au premier plan, donc register()/update()
+   n'est jamais rappelé. On revérifie donc aussi à chaque retour au
+   premier plan (visibilitychange). */
 
 if ('serviceWorker' in navigator) {
+  let _swReg = null;
+
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
-      .then(reg => reg.update())
+      .then(reg => { _swReg = reg; reg.update(); })
       .catch(err => console.warn('Service Worker:', err));
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') _swReg?.update();
   });
 
   let _swRefreshed = false;
