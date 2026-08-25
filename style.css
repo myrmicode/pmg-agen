@@ -1300,6 +1300,120 @@ a { color: inherit; }
 }
 
 /* ═══════════════════════════════════════════
+   GUIDE INSTALLATION (Ajouter à l'écran d'accueil)
+══════════════════════════════════════════════ */
+.topbar-install-btn {
+  color: rgba(255,255,255,.8);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+}
+.topbar-install-btn:hover {
+  color: #fff;
+  background: rgba(255,255,255,.15);
+}
+
+.ig-modal-box { position: relative; }
+
+.ig-close-x {
+  position: absolute;
+  top: .75rem;
+  right: .75rem;
+  color: var(--text3);
+  font-size: 1.05rem;
+  padding: 4px;
+  border-radius: 4px;
+  transition: color .15s, background .15s;
+}
+.ig-close-x:hover { color: var(--text); background: var(--gray2); }
+
+.ig-tabs {
+  display: flex;
+  background: var(--gray);
+  border-radius: 6px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.ig-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35rem;
+  padding: .5rem .4rem;
+  border-radius: 5px;
+  font-size: .85rem;
+  font-weight: 600;
+  color: var(--text2);
+  transition: background .15s, color .15s;
+}
+.ig-tab:hover { color: var(--text); }
+.ig-tab.active {
+  background: var(--blue);
+  color: #fff;
+}
+
+.ig-panel[hidden] { display: none !important; }
+
+.ig-panel-intro {
+  font-size: .85rem;
+  color: var(--text2);
+}
+
+.ig-steps {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: .55rem;
+  margin-top: .35rem;
+}
+
+.ig-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  font-size: .85rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.ig-steps .ti {
+  color: var(--blue);
+  font-size: 1.05em;
+}
+
+.ig-step-num {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--blue-lt);
+  color: var(--blue-dk);
+  font-size: .78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ig-note {
+  display: flex;
+  align-items: flex-start;
+  gap: .4rem;
+  font-size: .78rem;
+  color: var(--blue-dk);
+  background: var(--blue-lt);
+  border-radius: 6px;
+  padding: .6rem .7rem;
+  line-height: 1.5;
+}
+.ig-note .ti { flex-shrink: 0; margin-top: .1rem; }
+
+/* ═══════════════════════════════════════════
    TOASTS
 ══════════════════════════════════════════════ */
 .toast-container {

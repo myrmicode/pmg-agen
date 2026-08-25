@@ -16,6 +16,7 @@ import {
   renderMemberScreen, bindMemberTabs, bindMemberMonthNav, bindModMonthNav,
 } from './member.js';
 import { maybeShowOnboarding } from './onboarding.js';
+import { bindInstallGuide, maybeShowInstallGuide } from './install-guide.js';
 import {
   renderAdminScreen,
   bindAdminTabs, bindAdminMonthNav,
@@ -130,12 +131,26 @@ async function syncFromFirebase() {
   } catch {}
 }
 
-/* ── Service Worker (PWA) ── */
+/* ── Service Worker (PWA) ──
+   updateViaCache:'none' force le navigateur à toujours vérifier le
+   fichier service-worker.js sur le réseau (jamais via son cache HTTP) —
+   sinon une mise à jour peut mettre des heures à être détectée. Dès
+   qu'une nouvelle version prend le contrôle, on recharge une seule
+   fois pour que l'appli affiche immédiatement le nouveau code, sans
+   que l'utilisateur ait à vider le cache manuellement. */
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js')
+    navigator.serviceWorker.register('./service-worker.js', { updateViaCache: 'none' })
+      .then(reg => reg.update())
       .catch(err => console.warn('Service Worker:', err));
+  });
+
+  let _swRefreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (_swRefreshed) return;
+    _swRefreshed = true;
+    window.location.reload();
   });
 }
 
@@ -192,7 +207,12 @@ document.addEventListener("DOMContentLoaded", () => {
   bindAdminSettings();
   bindAdminStats();
   bindSyncFirebaseButton();
+  bindInstallGuide();
 
   /* 5. Sync Firebase en arrière-plan, après affichage de l'écran */
   syncFromFirebase();
+
+  /* 6. Guide d'installation — une seule fois, si l'app n'est pas déjà
+     installée. Léger délai pour laisser le premier écran s'afficher. */
+  setTimeout(() => maybeShowInstallGuide(), 400);
 });

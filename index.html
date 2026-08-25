@@ -78,6 +78,9 @@
     <div class="topbar-right">
       <div class="topbar-avatar" id="member-avatar"></div>
       <span id="mod-badge" hidden style="background:#f59e0b;color:#fff;font-size:.62rem;font-weight:700;padding:.15rem .42rem;border-radius:.25rem;letter-spacing:.06em;align-self:center;margin-left:.25rem;">MOD</span>
+      <button class="topbar-install-btn" data-action="show-install-guide" title="Ajouter à l'écran d'accueil">
+        <i class="ti ti-device-mobile"></i>
+      </button>
       <button class="topbar-logout" id="member-logout" title="Déconnexion">
         <i class="ti ti-logout"></i>
       </button>
@@ -180,6 +183,9 @@
     </div>
     <div class="topbar-right">
       <div class="topbar-avatar" id="admin-avatar">A</div>
+      <button class="topbar-install-btn" data-action="show-install-guide" title="Ajouter à l'écran d'accueil">
+        <i class="ti ti-device-mobile"></i>
+      </button>
       <button class="topbar-logout" id="admin-logout" title="Déconnexion">
         <i class="ti ti-logout"></i>
       </button>
@@ -441,6 +447,59 @@
       Ce code est à usage unique et expire à la première connexion.
     </p>
     <button id="modal-close-invite" class="btn btn-primary btn-full" style="margin-top:1rem;">Fermer</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     MODAL — AJOUTER À L'ÉCRAN D'ACCUEIL
+══════════════════════════════════════════════ -->
+<div id="modal-install-guide" class="modal-overlay" hidden>
+  <div class="modal-box ig-modal-box">
+    <button class="ig-close-x" id="ig-close-x" title="Fermer" aria-label="Fermer">
+      <i class="ti ti-x"></i>
+    </button>
+
+    <h3 class="modal-title">
+      <i class="ti ti-device-mobile"></i> Ajouter à l'écran d'accueil
+    </h3>
+
+    <div class="ig-tabs" id="ig-tabs">
+      <button class="ig-tab" data-os="ios">
+        <i class="ti ti-brand-apple"></i> iPhone
+      </button>
+      <button class="ig-tab" data-os="android">
+        <i class="ti ti-brand-android"></i> Android
+      </button>
+    </div>
+
+    <div class="ig-panel" id="ig-panel-ios">
+      <p class="ig-panel-intro">Depuis <b>Safari</b> :</p>
+      <ol class="ig-steps">
+        <li><span class="ig-step-num">1</span> Ouvrez cette page dans Safari.</li>
+        <li><span class="ig-step-num">2</span> Touchez l'icône de partage <i class="ti ti-share"></i> (le carré avec une flèche vers le haut), en bas de l'écran.</li>
+        <li><span class="ig-step-num">3</span> Choisissez <b>« Sur l'écran d'accueil »</b>.</li>
+        <li><span class="ig-step-num">4</span> Confirmez en touchant <b>« Ajouter »</b>.</li>
+      </ol>
+    </div>
+
+    <div class="ig-panel" id="ig-panel-android" hidden>
+      <p class="ig-panel-intro">Depuis <b>Chrome</b> :</p>
+      <ol class="ig-steps">
+        <li><span class="ig-step-num">1</span> Ouvrez cette page dans Chrome.</li>
+        <li><span class="ig-step-num">2</span> Touchez le menu <i class="ti ti-dots-vertical"></i> en haut à droite.</li>
+        <li><span class="ig-step-num">3</span> Choisissez <b>« Ajouter à l'écran d'accueil »</b> (ou <b>« Installer l'application »</b>).</li>
+        <li><span class="ig-step-num">4</span> Confirmez en touchant <b>« Ajouter »</b>.</li>
+      </ol>
+    </div>
+
+    <p class="ig-note">
+      <i class="ti ti-info-circle"></i>
+      Vous retrouverez ensuite l'icône TPL directement sur votre écran d'accueil, comme une vraie application.
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-full" id="ig-close-btn">J'ai compris</button>
+    </div>
   </div>
 </div>
 
