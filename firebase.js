@@ -88,11 +88,14 @@ async function fbFindMember(prenom, nom) {
   } catch { return null; }
 }
 
-/* Mise à jour partielle d'un membre (pin_hash, pin_reset, etc.) */
+/* Mise à jour partielle d'un membre (pin_hash, pin_reset, etc.).
+   Retourne true/false — l'appelant doit savoir si l'écriture a réussi
+   pour garantir que le PIN est bien synchronisé avant de continuer. */
 async function fbUpdateMember(memberId, fields) {
   try {
     await updateDoc(doc(db, "members", memberId), fields);
-  } catch {}
+    return true;
+  } catch { return false; }
 }
 
 /* Reset PIN admin : efface pin_hash + pose pin_reset:true */
@@ -273,6 +276,18 @@ async function fbGetRegistrations(slotDate) {
   } catch { return []; }
 }
 
+/* Toutes les inscriptions d'un membre, tous appareils confondus (jointure
+   par slot_date côté appelant — les slot_id locaux diffèrent d'un appareil
+   à l'autre). Retourne null (et non []) en cas d'échec réseau, pour que
+   l'appelant distingue "aucune inscription" de "impossible à vérifier". */
+async function fbGetMemberRegistrations(memberId) {
+  try {
+    const q    = query(collection(db, "registrations"), where("member_id", "==", memberId));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch { return null; }
+}
+
 async function fbAddRegistration(reg) {
   try {
     const q    = query(collection(db, "registrations"), where("slot_date", "==", reg.slot_date));
@@ -424,7 +439,8 @@ window.fbFunctions = {
   fbFindMember, fbUpdateMember, fbSetPinReset,
   fbGetSettings, fbUpdateSetting,
   fbGetSlots, fbGenerateMissingSlots, fbCloseSlot, fbOpenSlot, fbUpdateFutureSlotsPlaces,
-  fbGetRegistrations, fbGetRegistrationsPeriod, fbAddRegistration, fbDeleteRegistration,
+  fbGetRegistrations, fbGetRegistrationsPeriod, fbGetMemberRegistrations,
+  fbAddRegistration, fbDeleteRegistration,
   fbListenDay, fbListenWeek,
   fbGetQuota, fbIncrementQuota, fbDecrementQuota,
   fbSeedIfEmpty,

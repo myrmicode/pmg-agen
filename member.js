@@ -464,9 +464,23 @@ function _refreshMemberCalendar() {
 async function renderMySlots() {
   const member = currentMember;
   const wrap   = document.getElementById("my-slots-list");
-  wrap.innerHTML = "";
+  wrap.innerHTML = `
+    <div class="week-sync-bar">
+      <span class="week-sync-dot"></span><span>Synchronisation…</span>
+    </div>`;
 
-  const upcoming = getMemberUpcomingRegistrations(member.id);
+  /* Source de vérité multi-appareils : Firebase (jointure par date, cf. data.js).
+     Repli sur le stockage local de cet appareil si hors-ligne. */
+  let regsFromFirebase = null;
+  if (window.fbFunctions?.fbGetMemberRegistrations) {
+    regsFromFirebase = await Promise.race([
+      window.fbFunctions.fbGetMemberRegistrations(member.id),
+      new Promise(r => setTimeout(() => r(null), 8000)),
+    ]);
+  }
+
+  let upcoming = getMemberUpcomingRegistrations(member.id, regsFromFirebase ?? undefined);
+  wrap.innerHTML = "";
 
   if (upcoming.length === 0) {
     wrap.innerHTML = `
@@ -477,30 +491,35 @@ async function renderMySlots() {
     return;
   }
 
-  const allMembers = getMembers();
-  const slotsWithCo = await Promise.all(
-    upcoming.map(async slot => {
-      if (!window.fbFunctions?.fbGetRegistrations) return { ...slot, coInscrits: [] };
-      const regs = await window.fbFunctions.fbGetRegistrations(slot.date);
-      const coInscrits = regs
-        .filter(r => r.member_id !== member.id)
-        .map(r => {
-          const m = allMembers.find(mb => mb.id === r.member_id) || {};
-          return {
-            id:     r.member_id,
-            prenom: m.prenom || r.member_prenom || "?",
-            nom:    m.nom    || r.member_nom    || "",
-            tel:    m.tel    || r.member_tel    || "",
-          };
-        });
-      return { ...slot, coInscrits };
-    })
-  );
+  /* Si Firebase n'a pas répondu, les co-inscrits calculés localement peuvent
+     être incomplets (autres appareils) — on tente un rafraîchissement
+     slot par slot, comme avant ce correctif. */
+  if (!regsFromFirebase) {
+    const allMembers = getMembers();
+    upcoming = await Promise.all(
+      upcoming.map(async slot => {
+        if (!window.fbFunctions?.fbGetRegistrations) return slot;
+        const regs = await window.fbFunctions.fbGetRegistrations(slot.date);
+        const coInscrits = regs
+          .filter(r => r.member_id !== member.id)
+          .map(r => {
+            const m = allMembers.find(mb => mb.id === r.member_id) || {};
+            return {
+              id:     r.member_id,
+              prenom: m.prenom || r.member_prenom || "?",
+              nom:    m.nom    || r.member_nom    || "",
+              tel:    m.tel    || r.member_tel    || "",
+            };
+          });
+        return { ...slot, coInscrits };
+      })
+    );
+  }
 
   const container = document.createElement("div");
   container.className = "my-slots-wrap";
 
-  slotsWithCo.forEach(slot => {
+  upcoming.forEach(slot => {
     const d    = keyToDate(slot.date);
     const card = document.createElement("div");
     card.className = "my-slot-card";

@@ -350,18 +350,29 @@ export function bindChoosePinScreen() {
       /* SHA-256 local */
       const hash = await _hashPIN(p1);
 
-      /* UN appel Firebase — sauvegarde pin_hash + efface pin_reset */
-      window.fbFunctions?.fbUpdateMember(_pendingMember.id, {
-        pin_hash:  hash,
-        pin_reset: false,
-      });
+      /* UN appel Firebase — sauvegarde pin_hash + efface pin_reset.
+         Attendu (avec timeout) pour garantir que le PIN est bien
+         synchronisé AVANT de dire à l'utilisateur que c'est bon —
+         sinon la connexion depuis un autre appareil échouerait. */
+      const synced = await Promise.race([
+        window.fbFunctions?.fbUpdateMember(_pendingMember.id, {
+          pin_hash:  hash,
+          pin_reset: false,
+        }) ?? Promise.resolve(false),
+        new Promise(r => setTimeout(() => r(false), 8000)),
+      ]);
 
-      /* Mise à jour du cache local */
+      /* Mise à jour du cache local (cet appareil fonctionne dans tous les cas) */
       _pendingMember.pin_hash  = hash;
       _pendingMember.pin_reset = false;
       localStorage.setItem(MEMBER_CACHE, JSON.stringify(_pendingMember));
 
-      console.log("[TPL] 2. PIN défini et sauvegardé dans Firebase");
+      if (synced) {
+        console.log("[TPL] 2. PIN défini et sauvegardé dans Firebase");
+      } else {
+        console.warn("[TPL] PIN sauvegardé localement mais non synchronisé (réseau)");
+        window.showToast("PIN enregistré sur cet appareil, mais pas synchronisé (connexion instable). Recommencez sur vos autres appareils si besoin.");
+      }
       connectMember(_pendingMember);
     } catch {
       window.showError();

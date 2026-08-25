@@ -325,7 +325,7 @@ export function addRegistration(slotId, memberId) {
   const regs   = _load("tpl_registrations", []);
   const member = getMemberById(memberId);
   const slot   = _load("tpl_slots", []).find(s => s.id === slotId);
-  const reg    = { id: genId(), slot_id: slotId, member_id: memberId, registered_at: new Date().toISOString() };
+  const reg    = { id: genId(), slot_id: slotId, slot_date: slot?.date ?? null, member_id: memberId, registered_at: new Date().toISOString() };
   regs.push(reg);
   _save("tpl_registrations", regs);
   if (slot && member) {
@@ -381,18 +381,27 @@ export function getSlotsWithRegistrations(dateDebut, dateFin) {
 
 /* ── Inscriptions à venir (membre) ── */
 
-export function getMemberUpcomingRegistrations(memberId) {
+/* regsOverride : liste d'inscriptions déjà chargée (ex: depuis Firebase,
+   pour un membre connecté sur un autre appareil que celui où il s'est
+   inscrit). Les slot_id locaux sont propres à chaque appareil — la
+   jointure se fait donc toujours par date (slot_date), jamais par slot_id. */
+export function getMemberUpcomingRegistrations(memberId, regsOverride) {
   const today   = dateToKey(new Date());
-  const allRegs = _load("tpl_registrations", []);
-  const myRegs  = allRegs.filter(r => r.member_id === memberId);
   const slots   = _load("tpl_slots", []);
   const members = _load("tpl_members", []);
+
+  const allRegs = (regsOverride ?? _load("tpl_registrations", []))
+    .map(r => ({ ...r, _date: r.slot_date || slots.find(s => s.id === r.slot_id)?.date }))
+    .filter(r => r._date);
+
+  const myRegs = allRegs.filter(r => r.member_id === memberId);
+
   return myRegs
     .map(r => {
-      const slot = slots.find(s => s.id === r.slot_id);
+      const slot = slots.find(s => s.date === r._date);
       if (!slot) return null;
       const coInscrits = allRegs
-        .filter(cr => cr.slot_id === r.slot_id && cr.member_id !== memberId)
+        .filter(cr => cr._date === r._date && cr.member_id !== memberId)
         .map(cr => {
           const m = members.find(mb => mb.id === cr.member_id) || {};
           return {
