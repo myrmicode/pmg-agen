@@ -7,7 +7,7 @@ import {
   getSettings, generateMissingSlots, getSlotsWithRegistrations,
   getMemberUpcomingRegistrations, getMemberUpcomingCount,
   addRegistration, deleteRegistration, closeSlot, openSlot,
-  incrementQuota, decrementQuota, getQuotaState,
+  incrementQuota, decrementQuota, getQuotaState, fetchAndSyncQuota,
   getInitials, fullName, getAvatarColorIndex, getAvatarBgColor,
   getMembers, patchSlotFromFirebase,
 } from './data.js';
@@ -162,10 +162,15 @@ function renderMemberBanner() {
    QUOTA
 ════════════════════════════════════════ */
 
-function renderQuotaBar() {
+async function renderQuotaBar() {
   const member = currentMember;
   if (!member) return;
-  const state  = getQuotaState(member.id);
+  _paintQuotaBar(getQuotaState(member.id));           // affichage immédiat (cache local)
+  const state = await fetchAndSyncQuota(member.id);   // reconciliation avec Firebase
+  if (currentMember?.id === member.id) _paintQuotaBar(state);
+}
+
+function _paintQuotaBar(state) {
   const dotsEl = document.getElementById("quota-dots");
   const textEl = document.getElementById("quota-text");
 
@@ -395,9 +400,9 @@ function renderMemberWeekDetail(mondayKey) {
 
   cards.onclick = (e) => {
     const btn = e.target.closest("[data-action]");
-    if (!btn) return;
-    if (btn.dataset.action === "inscrire") doSignup(btn.dataset.slotId);
-    if (btn.dataset.action === "desister") doWithdraw(btn.dataset.slotId);
+    if (!btn || btn.disabled) return;
+    if (btn.dataset.action === "inscrire") doSignup(btn.dataset.slotId, btn);
+    if (btn.dataset.action === "desister") doWithdraw(btn.dataset.slotId, btn);
   };
 }
 
@@ -405,15 +410,17 @@ function renderMemberWeekDetail(mondayKey) {
    INSCRIPTION / DÉSISTEMENT
 ════════════════════════════════════════ */
 
-function doSignup(slotId) {
+async function doSignup(slotId, btn) {
   const member = currentMember;
+  if (btn) btn.disabled = true;
   let quotaUsed = false;
   try {
-    const canSignup = incrementQuota(member.id);
+    const canSignup = await incrementQuota(member.id);
     if (!canSignup) {
       const state = getQuotaState(member.id);
       window.showToast(`Quota atteint — disponible ${state.nextResetLabel}`);
       renderQuotaBar();
+      if (btn) btn.disabled = false;
       return;
     }
     quotaUsed = true;
@@ -422,28 +429,31 @@ function doSignup(slotId) {
     _refreshMemberCalendar();
     renderQuotaBar();
   } catch (e) {
-    if (quotaUsed) try { decrementQuota(member.id); } catch {}
+    if (quotaUsed) try { await decrementQuota(member.id); } catch {}
     window.showError();
+    if (btn) btn.disabled = false;
   }
 }
 
-function doWithdraw(slotId) {
+async function doWithdraw(slotId, btn) {
   const member = currentMember;
   if (!member?.id) {
     console.error("[TPL] doWithdraw: currentMember.id manquant !");
     window.showError();
     return;
   }
+  if (btn) btn.disabled = true;
   console.log("[TPL] Désistement slot:", slotId, "| Member ID:", member.id);
   try {
     deleteRegistration(slotId, member.id);
-    decrementQuota(member.id);
+    await decrementQuota(member.id);
     window.showToast("Désistement enregistré.");
     _refreshMemberCalendar();
     renderQuotaBar();
   } catch (e) {
     console.error("[TPL] Erreur désistement:", e);
     window.showError();
+    if (btn) btn.disabled = false;
   }
 }
 

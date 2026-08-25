@@ -392,11 +392,15 @@ async function fbDeleteRegistration(slotDate, memberId) {
 
 /* ── Quotas (doc ID = member_id) ── */
 
+/* Retourne toujours un objet quota valide ({count, next_reset}) — y compris
+   {count:0, next_reset:null} si le membre n'a encore aucun document.
+   Retourne undefined UNIQUEMENT en cas d'échec réseau, pour que l'appelant
+   distingue "vraiment aucune réservation" de "impossible à vérifier". */
 async function fbGetQuota(member_id) {
   try {
     const d = await getDoc(doc(db, "quotas", member_id));
-    return d.exists() ? d.data() : null;
-  } catch { return null; }
+    return d.exists() ? d.data() : { count: 0, next_reset: null };
+  } catch { return undefined; }
 }
 
 async function fbIncrementQuota(member_id, count, next_reset) {

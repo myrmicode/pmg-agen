@@ -425,13 +425,22 @@ export function getMemberUpcomingCount(memberId) {
 
 export const QUOTA_MAX = 2;
 
-export function getQuotaState(memberId) {
+/* override : quota déjà connu (ex: renvoyé par Firebase) — sert à faire
+   confiance au serveur plutôt qu'au compteur local de cet appareil, qui
+   ne connaît pas les réservations faites ailleurs. undefined = pas de
+   valeur externe dispo (hors-ligne) → repli sur le stockage local. */
+export function getQuotaState(memberId, override) {
   const now    = new Date();
   const quotas = _load("tpl_quotas", {});
-  let   q      = quotas[memberId] || { count: 0, next_reset: null };
+  let   q      = override !== undefined ? override : (quotas[memberId] || { count: 0, next_reset: null });
+  let   dirty  = override !== undefined;
 
   if (q.next_reset && now >= new Date(q.next_reset)) {
     q = { count: 0, next_reset: null };
+    dirty = true;
+  }
+
+  if (dirty) {
     quotas[memberId] = q;
     _save("tpl_quotas", quotas);
   }
@@ -446,8 +455,22 @@ export function getQuotaState(memberId) {
   return { count: q.count, max: QUOTA_MAX, canSignup: q.count < QUOTA_MAX, nextResetLabel };
 }
 
-export function incrementQuota(memberId) {
-  const state = getQuotaState(memberId);
+/* Va chercher le quota réel sur Firebase (avec timeout) et le fusionne
+   dans le cache local — pour que le compteur reflète les réservations
+   faites depuis n'importe quel appareil, pas seulement celui-ci. */
+export async function fetchAndSyncQuota(memberId) {
+  let fbQuota;
+  if (window.fbFunctions?.fbGetQuota) {
+    fbQuota = await Promise.race([
+      window.fbFunctions.fbGetQuota(memberId),
+      new Promise(r => setTimeout(() => r(undefined), 8000)),
+    ]);
+  }
+  return getQuotaState(memberId, fbQuota);
+}
+
+export async function incrementQuota(memberId) {
+  const state = await fetchAndSyncQuota(memberId);
   if (!state.canSignup) return false;
 
   const tomorrow = new Date();
@@ -463,7 +486,8 @@ export function incrementQuota(memberId) {
   return true;
 }
 
-export function decrementQuota(memberId) {
+export async function decrementQuota(memberId) {
+  await fetchAndSyncQuota(memberId);
   const quotas   = _load("tpl_quotas", {});
   const cur      = quotas[memberId];
   if (!cur) return;
