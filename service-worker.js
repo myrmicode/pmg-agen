@@ -4,7 +4,7 @@
    cache-at-runtime pour le CDN Tabler.
 ══════════════════════════════════════════════ */
 
-const CACHE_NAME  = 'tpl-v30';
+const CACHE_NAME  = 'tpl-v31';
 const TABLER_URL  = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css';
 
 const PRECACHE_URLS = [
@@ -26,15 +26,24 @@ const PRECACHE_URLS = [
   './icons/icon-maskable.png',
 ];
 
-/* ── Install : précache les fichiers locaux ── */
+/* ── Install : précache les fichiers locaux ──
+   cache: 'reload' force chaque requête à ignorer le cache HTTP du
+   navigateur (disque) et à aller chercher le fichier sur le réseau.
+   Sans ça, cache.addAll() peut repiocher d'anciennes réponses dans le
+   cache HTTP même quand CACHE_NAME change, et la mise à jour n'est
+   alors visible qu'après un vidage manuel du cache. */
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
         // Précache local (doit réussir)
-        const localPromise = cache.addAll(PRECACHE_URLS);
+        const localPromise = Promise.all(
+          PRECACHE_URLS.map(url =>
+            fetch(url, { cache: 'reload' }).then(res => cache.put(url, res))
+          )
+        );
         // Précache CDN (optionnel — échec silencieux si hors ligne)
-        const cdnPromise   = fetch(TABLER_URL, { mode: 'cors' })
+        const cdnPromise   = fetch(TABLER_URL, { mode: 'cors', cache: 'reload' })
           .then(res => cache.put(TABLER_URL, res))
           .catch(() => {});
         return Promise.all([localPromise, cdnPromise]);
