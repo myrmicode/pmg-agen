@@ -105,8 +105,15 @@ export function renderCalendarGrid(container, year, month, memberId, selectedWee
 
     const weekYear  = monday.getFullYear();
     const weekMonth = monday.getMonth();
+    // Une semaine "à cheval" dont le lundi appartient au mois précédent
+    // (ex : lundi 31 août pour la semaine du 1er septembre) ne doit
+    // jamais être verrouillée : ce mois précédent est forcément déjà
+    // accessible (il est passé ou en cours), seul un mois SUIVANT
+    // peut être verrouillé.
+    const isPrevMonthPadding = weekYear < year || (weekYear === year && weekMonth < month);
     const isLocked  = !isAdminView &&
                       weekMonth !== month &&
+                      !isPrevMonthPadding &&
                       !isMonthAccessibleForMember(weekYear, weekMonth);
 
     if (isPast)   weekRow.classList.add("week-past");
